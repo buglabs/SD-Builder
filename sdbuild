@@ -1,0 +1,235 @@
+#!/bin/bash
+# Licensed under terms of GPLv2
+# (c) 2010 BugLabs Mike Grundy <Michael.Grundy@buglabs.net>
+#
+# mkcard() from mkcard.sh v0.5
+# (c) Copyright 2009 Graeme Gregory <dp@xora.org.uk>
+#
+# Parts of the procudure base on the work of Denys Dmytriyenko
+# http://wiki.omap.com/index.php/MMC_Boot_Format
+
+prompt()
+{
+	tvar=L
+	while [ "$tvar" != "y" ] &&
+	        [ "$tvar" != "Y" ] &&
+	        [ "$tvar" != "n" ] &&
+	        [ "$tvar" != "N" ] &&
+	        [ "$tvar" != "r" ] &&
+	        [ "$tvar" != "R" ]; do
+
+	        read -n1 tvar
+
+	done
+	export $1=$tvar
+}
+
+micron-loader () {
+	cp ./x-loader/MLO-micron $1/MLO
+	cp ./x-loader/x-load.bin.ift-micron $1/x-load.bin.ift
+}
+
+elpida-loader () {
+	cp ./x-loader/MLO-elpida $1/MLO
+	cp ./x-loader/x-load.bin.ift-elpida $1/x-load.bin.ift
+}
+
+mtest-build () {
+	cp ./u-boot/u-boot.gold-bin	$1/u-boot.bin
+	cp ./uImage/uImage		$1
+	cp ./memtest/ramdisk.gz		$1
+	cp ./memtest/__setenv.img	$1
+}
+
+flash-build () {
+	cp ./u-boot/u-boot-force-env	$1/u-boot.bin
+	cp ./u-boot/pu-boot.bin		$1
+	cp ./flash/config.img		$1
+}
+
+vtest-build() {
+	cp ./u-boot/u-boot.gold-bin	$1
+	cp ./uImage/uImage		$1
+	cp ./vtest/ramdisk.gz		$1
+}
+
+vtest-vars () {
+	echo wlan_ip=192.168.1.10$1	> $2/testvars
+	echo test_ip=192.168.1.1	>>$2/testvars
+	echo source_addr=192.168.1.10$1	>>$2/testvars
+	echo dest_addr=192.168.1.1	>>$2/testvars
+	echo wlan_name=bugbasetesting	>>$2/testvars
+}
+
+mkcard(){
+	export LC_ALL=C
+
+	DRIVE=$1
+	PARTNAME=$2
+	if [ -e $PARTNAME ]; then
+		PARTNAME="BUGCARD"
+	fi
+
+	sleep 5
+	umount ${DRIVE}* 
+
+	dd if=/dev/zero of=$DRIVE bs=1024 count=1024 
+	if [ $? != "0" ];then
+		echo "Partition table wipe (dd) failed"
+		exit
+	fi
+
+	SIZE=`fdisk -l $DRIVE | grep Disk | grep bytes | awk '{print $5}'`
+	CYLINDERS=`echo $SIZE/255/63/512 | bc`
+	# echo DISK SIZE: $SIZE bytes CYLINDERS: $CYLINDERS
+	
+	{
+		echo ,9,0x0C,*
+		echo ,,0x0C,-
+	} | sfdisk -D -H 255 -S 63 -C $CYLINDERS $DRIVE 
+	if [ $? != "0" ];then
+		echo sfdisk failed, exiting
+		exit
+	fi
+
+	sleep 1
+
+	if [ -b ${DRIVE}1 ]; then
+		umount ${DRIVE}1
+		mkfs.vfat -F 32 -n "${PARTNAME}" ${DRIVE}1
+		if [ $? != "0" ];then
+			echo mkfs failed, exiting
+			exit
+		fi
+	elif [ -b ${DRIVE}p1 ]; then
+		umount ${DRIVE}p1 2&>1 > /dev/null
+		mkfs.vfat -F 32 -n "${PARTNAME}" ${DRIVE}p1
+		if [ $? != "0" ];then
+			echo mkfs failed, exiting
+			exit
+		fi
+	else
+		echo "Cant find boot partition in /dev"
+		exit
+	fi
+
+	if [ -b ${DRIVE}2 ]; then
+		umount ${DRIVE}2
+		mkfs.vfat -F 32 -n "${PARTNAME}-2" ${DRIVE}2
+		if [ $? != "0" ];then
+			echo mkfs failed, exiting
+			exit
+		fi
+	elif [ -b ${DRIVE}p2 ]; then
+		umount ${DRIVE}p2
+		mkfs.vfat -F 32 -n "${PARTNAME}-2" ${DRIVE}p2
+		if [ $? != "0" ];then
+			echo mkfs failed, exiting
+			exit
+		fi
+	else
+		echo "Cant find 2nd partition in /dev"
+		exit
+	fi
+}
+
+help () {
+	echo sdbuild - Designed to keep Rao and the fine folks at CircuitCo happy
+	echo "	 -d Device name of the sd card you are building"
+	echo "	 -e Configure for prototype boards with Elpida memory"
+	echo -e "	    (Micron is the defaut. It's in all the production bases)"
+	echo "	 -f Create bootloader flash card"
+	echo "	 -m Create memory test / burn-in card"
+	echo "	 -n Test Fixture ID (only used with -v)"
+	echo "	 -v Create verification test card"
+}
+memtype=micron
+if [ $# -eq 0 ]; then
+	help
+	exit -1
+fi
+
+while [ $# -gt 0 ]; do 
+	# -d Device name
+	if [ "$1" == "-d" ]; then
+		shift
+		if [ -b $1 ]; then
+			devname=$1
+			mountpoint=/media/$(echo $devname | sed 's:/dev/::')1
+		else
+			echo $1 is not a valid block device
+			exit -1
+		fi
+	# -e Elpida memory (micron is the default)
+	elif [ "$1" == "-e" ]; then
+		memtype=elpida
+	# -f Create bootloader flash disk
+	elif [ "$1" == "-f" ]; then
+		buildtype=flash
+	# -m Create memory test
+	elif [ "$1" == "-m" ]; then
+		buildtype=mtest
+	# -n Test Fixture ID (only used with -v)
+	elif [ "$1" == "-n" ]; then
+		shift
+		fixid=$1
+	# -v Create verification test
+	elif [ "$1" == "-v" ]; then
+		buildtype=vtest
+	# Create a better informed user
+	elif [ "$1" == "--help" ]; then
+		help
+	else
+		echo $1 is not a valid option. Try one of these instead:
+		help
+		exit
+	fi
+	shift
+done
+
+while [ 1 ]; do
+
+
+	if [ "$buildtype" == "vtest" ]; then
+		volid=TESTRIG${fixid}
+	elif [ "$buildtype" == "mtest" ]; then
+		volid=MEMTEST
+	elif [ "$buildtype" == "flash" ]; then
+		volid=FLASH-${memtype}
+	else
+		echo Internal Error, sorry
+		exit
+	fi
+
+	echo partitioning and formatting card
+	mkcard $devname $volid
+	echo mounting partition
+	pmount ${devname}1
+	if [ ! -d $mountpoint ]; then
+		echo mount failed
+		exit
+	fi
+	echo Writing x-loader for ${memtype}
+	${memtype}-loader ${mountpoint}
+	echo Writing files to disk
+	${buildtype}-build ${mountpoint}
+
+	pumount ${devname}1
+	clear
+	echo
+	echo
+	echo
+	echo
+	echo "********************************************************************"
+	echo "SD Card build complete. Would you like to create another copy? (y/n)"
+	echo "********************************************************************"
+
+	prompt finished
+
+	if [ $finished == "n" ]; then
+		break
+	else
+		continue
+	fi
+done
+

@@ -1,0 +1,33 @@
+echo ============================================================
+echo Running the Ram and Nand tests
+echo ============================================================
+setenv red 'imw 4A EE 11 1'
+setenv grn 'imw 4A EE 22 1'
+setenv off 'imw 4A EE 00 1'
+run grn
+if diagnose memory nand; then
+	if diag memory RAMtest; then
+		echo loading test kernel
+		fatload mmc 0:1 0x80000000 uImage
+		echo loading initrd
+		fatload mmc 0:1 0x81600000 ramdisk.gz
+		# Now booting correctly with ramdisk and initrd:
+		setenv bootargs 'console=ttyS2,115200n8 ramdisk_size=10240 mem=256M root=/dev/ram0 rw rootfstype=ext2 initrd=0x81600000,4M rw rootwait rootdelay=1 kgdboc=ttyS2,115200n8 usbcore.autosuspend=-1 8250.nr_uarts=6 printk.time=1'
+
+		echo booting test kernel
+		bootm 0x80000000
+	# Ram Test Failed
+	else
+		while echo; do
+			run off
+			sleep 1
+			run red
+			sleep 1
+		done
+	fi
+#Nand test Failed
+else
+	run off
+	run red
+fi
+
