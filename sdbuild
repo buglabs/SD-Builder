@@ -71,9 +71,9 @@ mkcard(){
 	fi
 
 	sleep 5
-	umount ${DRIVE}* 
+	umount ${DRIVE}*
 
-	dd if=/dev/zero of=$DRIVE bs=1024 count=1024 
+	dd if=/dev/zero of=$DRIVE bs=1024 count=1024
 	if [ $? != "0" ];then
 		echo "Partition table wipe (dd) failed"
 		exit
@@ -82,11 +82,11 @@ mkcard(){
 	SIZE=`fdisk -l $DRIVE | grep Disk | grep bytes | awk '{print $5}'`
 	CYLINDERS=`echo $SIZE/255/63/512 | bc`
 	# echo DISK SIZE: $SIZE bytes CYLINDERS: $CYLINDERS
-	
+
 	{
 		echo ,9,0x0C,*
 		echo ,,0x0C,-
-	} | sfdisk -D -H 255 -S 63 -C $CYLINDERS $DRIVE 
+	} | sfdisk -D -H 255 -S 63 -C $CYLINDERS $DRIVE
 	if [ $? != "0" ];then
 		echo sfdisk failed, exiting
 		exit
@@ -137,7 +137,7 @@ help () {
 	echo sdbuild - Designed to keep Rao and the fine folks at CircuitCo happy
 	echo "	 -d Device name of the sd card you are building"
 	echo "	 -e Configure for prototype boards with Elpida memory"
-	echo -e "	    (Micron is the defaut. It's in all the production bases)"
+	echo -e "	    (Micron is the default. It's in all the production bases)"
 	echo "	 -f Create bootloader flash card"
 	echo "	 -m Create memory test / burn-in card"
 	echo "	 -n Test Fixture ID (only used with -v)"
@@ -149,7 +149,7 @@ if [ $# -eq 0 ]; then
 	exit -1
 fi
 
-while [ $# -gt 0 ]; do 
+while [ $# -gt 0 ]; do
 	# -d Device name
 	if [ "$1" == "-d" ]; then
 		shift
