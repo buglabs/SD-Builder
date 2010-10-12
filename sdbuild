@@ -179,6 +179,7 @@ while [ $# -gt 0 ]; do
 	# Create a better informed user
 	elif [ "$1" == "--help" ]; then
 		help
+		exit -1
 	else
 		echo $1 is not a valid option. Try one of these instead:
 		help
