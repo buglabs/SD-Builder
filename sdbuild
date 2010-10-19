@@ -48,7 +48,7 @@ flash-build () {
 }
 
 vtest-build() {
-	cp ./u-boot/u-boot.gold-bin	$1
+	cp ./u-boot/u-boot.gold-bin	$1/u-boot.bin
 	cp ./uImage/uImage		$1
 	cp ./vtest/ramdisk.gz		$1
 }
@@ -192,6 +192,11 @@ while [ 1 ]; do
 
 
 	if [ "$buildtype" == "vtest" ]; then
+		if [ "$fixid" == "" ]; then
+		echo You have to specify -n with -v
+			help
+			exit
+		fi
 		volid=TESTRIG${fixid}
 	elif [ "$buildtype" == "mtest" ]; then
 		volid=MEMTEST
@@ -214,6 +219,9 @@ while [ 1 ]; do
 	${memtype}-loader ${mountpoint}
 	echo Writing files to disk
 	${buildtype}-build ${mountpoint}
+	if [ "$buildtype" == "vtest" ]; then
+		vtest-vars ${fixid} ${mountpoint}
+	fi
 
 	pumount ${devname}1
 	clear
