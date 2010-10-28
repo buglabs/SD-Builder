@@ -41,6 +41,12 @@ mtest-build () {
 	cp ./memtest/__setenv.img	$1
 }
 
+fcc-build () {
+	cp ./u-boot/u-boot.gold-bin	$1/u-boot.bin
+	cp ./fcc/uImage			$1
+	cp ./fcc/ramdisk.gz		$1
+}
+
 flash-build () {
 	cp ./u-boot/u-boot-force-env	$1/u-boot.bin
 	cp ./u-boot/pu-boot.bin		$1
@@ -166,6 +172,9 @@ while [ $# -gt 0 ]; do
 	# -f Create bootloader flash disk
 	elif [ "$1" == "-f" ]; then
 		buildtype=flash
+	# -f Create FCC certification disk
+	elif [ "$1" == "--fcc" ]; then
+		buildtype=fcc
 	# -m Create memory test
 	elif [ "$1" == "-m" ]; then
 		buildtype=mtest
@@ -202,6 +211,8 @@ while [ 1 ]; do
 		volid=MEMTEST
 	elif [ "$buildtype" == "flash" ]; then
 		volid=FLASH-${memtype}
+	elif [ "$buildtype" == "fcc" ]; then
+		volid=FCCTEST
 	else
 		echo Internal Error, sorry
 		exit
@@ -219,7 +230,7 @@ while [ 1 ]; do
 	${memtype}-loader ${mountpoint}
 	echo Writing files to disk
 	${buildtype}-build ${mountpoint}
-	if [ "$buildtype" == "vtest" ]; then
+	if [ "$buildtype" == "vtest" ] ||[ "$buildtype" == "fcc" ]  ; then
 		vtest-vars ${fixid} ${mountpoint}
 	fi
 
