@@ -190,33 +190,50 @@ while [ $# -gt 0 ]; do
 		help
 		exit -1
 	else
+		echo
 		echo $1 is not a valid option. Try one of these instead:
+		echo
 		help
 		exit
 	fi
 	shift
 done
 
-while [ 1 ]; do
+if [ "$devname" == "" ]; then
+	echo
+	echo "you must specify a device with the -d option"
+	echo
+	help
+	exit -1
+fi
 
+if [[ $EUID -ne 0 ]]; then
+	echo
+	echo "You need superuser privs to do anything constructive, sudo please"
+	echo
+	help
+	exit 1
+fi
 
-	if [ "$buildtype" == "vtest" ]; then
-		if [ "$fixid" == "" ]; then
-		echo You have to specify -n with -v
-			help
-			exit
-		fi
-		volid=TESTRIG${fixid}
-	elif [ "$buildtype" == "mtest" ]; then
-		volid=MEMTEST
-	elif [ "$buildtype" == "flash" ]; then
-		volid=FLASH-${memtype}
-	elif [ "$buildtype" == "fcc" ]; then
-		volid=FCCTEST
-	else
-		echo Internal Error, sorry
+if [ "$buildtype" == "vtest" ]; then
+	if [ "$fixid" == "" ]; then
+	echo You have to specify -n with -v
+		help
 		exit
 	fi
+	volid=TESTRIG${fixid}
+elif [ "$buildtype" == "mtest" ]; then
+	volid=MEMTEST
+elif [ "$buildtype" == "flash" ]; then
+	volid=FLASH-${memtype}
+elif [ "$buildtype" == "fcc" ]; then
+	volid=FCCTEST
+else
+	echo Internal Error, sorry
+	exit
+fi
+
+while [ 1 ]; do
 
 	echo partitioning and formatting card
 	mkcard $devname $volid
