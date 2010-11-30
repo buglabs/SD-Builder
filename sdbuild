@@ -24,14 +24,9 @@ prompt()
 	export $1=$tvar
 }
 
-micron-loader () {
-	cp ./x-loader/MLO-micron $1/MLO
-	cp ./x-loader/x-load.bin.ift-micron $1/x-load.bin.ift
-}
-
-elpida-loader () {
-	cp ./x-loader/MLO-elpida $1/MLO
-	cp ./x-loader/x-load.bin.ift-elpida $1/x-load.bin.ift
+x-loader () {
+	cp ./x-loader/MLO $1/MLO
+	cp ./x-loader/x-load.bin.ift $1/x-load.bin.ift
 }
 
 mtest-build () {
@@ -48,7 +43,11 @@ fcc-build () {
 }
 
 flash-build () {
-	cp ./u-boot/u-boot-force-env	$1/u-boot.bin
+	if [[ "$uboot" == "force" ]]; then
+		cp ./u-boot/u-boot-force-env	$1/u-boot.bin
+	else
+		cp ./u-boot/pu-boot.bin		$1/u-boot.bin
+	fi
 	cp ./u-boot/pu-boot.bin		$1
 	cp ./flash/config.img		$1
 }
@@ -142,14 +141,14 @@ mkcard(){
 help () {
 	echo sdbuild - Designed to keep Rao and the fine folks at CircuitCo happy
 	echo "	 -d Device name of the sd card you are building"
-	echo "	 -e Configure for prototype boards with Elpida memory"
-	echo -e "	    (Micron is the default. It's in all the production bases)"
+	echo "	 -e Override any existing u-boot environment (factory only)"
+	echo -e "      This will erase the mac address, hence factory only"
 	echo "	 -f Create bootloader flash card"
 	echo "	 -m Create memory test / burn-in card"
 	echo "	 -n Test Fixture ID (only used with -v)"
 	echo "	 -v Create verification test card"
 }
-memtype=micron
+
 if [ $# -eq 0 ]; then
 	help
 	exit -1
@@ -168,7 +167,7 @@ while [ $# -gt 0 ]; do
 		fi
 	# -e Elpida memory (micron is the default)
 	elif [ "$1" == "-e" ]; then
-		memtype=elpida
+		uboot=force
 	# -f Create bootloader flash disk
 	elif [ "$1" == "-f" ]; then
 		buildtype=flash
@@ -225,7 +224,7 @@ if [ "$buildtype" == "vtest" ]; then
 elif [ "$buildtype" == "mtest" ]; then
 	volid=MEMTEST
 elif [ "$buildtype" == "flash" ]; then
-	volid=FLASH-${memtype}
+	volid=FLASH
 elif [ "$buildtype" == "fcc" ]; then
 	volid=FCCTEST
 else
@@ -244,7 +243,7 @@ while [ 1 ]; do
 		exit
 	fi
 	echo Writing x-loader for ${memtype}
-	${memtype}-loader ${mountpoint}
+	x-loader ${mountpoint}
 	echo Writing files to disk
 	${buildtype}-build ${mountpoint}
 	if [ "$buildtype" == "vtest" ] ||[ "$buildtype" == "fcc" ]  ; then
