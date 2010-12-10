@@ -1,0 +1,73 @@
+echo ============================================================
+echo Running initial setup
+echo ============================================================
+echo running mmcinit
+mmc init
+
+echo setting nand ecc hw
+nandecc hw
+
+echo erasing 0x0 0x80000
+nand erase 0x0 0x80000
+
+echo reading x-loader (x-load.bin.ift)
+fatload mmc 0:1 0x82000000 x-load.bin.ift
+
+echo writing x-loader to nand
+nand write 0x82000000 0x0 0x80000
+
+echo setting nand ecc sw
+nandecc sw
+
+echo erasing 0x80000 0x160000
+nand erase 0x80000 0x160000
+
+echo reading u-boot (pu-boot.bin)
+fatload mmc 0:1 0x82000000 pu-boot.bin
+
+echo writing u-boot to nand
+nand write 0x82000000 0x80000 0x160000
+
+echo setting boot sequence and args
+setenv mmcargs 'setenv bootargs smsc95xx.mac=${ethaddr} console=${console} root=/dev/mmcblk0p1 rw rootwait rootdelay=1 kgdboc=${console} usbcore.autosuspend=-1'
+setenv mmcboot 'mmc init;ext2load mmc 0:1 0x80000000 /boot/uImage;run mmcargs;bootm 0x80000000'
+setenv bootargs 'console=ttyS2,115200n8 root=/dev/mmcblk0p1 rw rootwait rootdelay=1 kgdboc=ttyS2,115200n8 usbcore.autosuspend=-1 8250.nr_uarts=6 printk.time=1'
+setenv shutdown 'i2c mw 4b 46 41 1'
+setenv bootcmd 'run mmcboot; run confcmd; run shutdown'
+setenv confcmd 'mmc init; mw.b 0x81600000 0xff 0x100; fatload mmc 0:1 0x81600000 config.img; source 0x81600000;'
+setenv bootdelay '3'
+setenv console 'ttyS2,115200n8'
+setenv preboot ''
+setenv stderr 'serial'
+setenv stdin 'serial'
+setenv stdout 'serial'
+setenv loadaddr
+setenv usbtty
+setenv vram
+setenv dvimode
+setenv defaultdisplay
+setenv mmcroot
+setenv mmcrootfstype
+setenv nandroot
+setenv nandrootfstype
+setenv nandargs
+setenv loadbootscript
+setenv bootscript
+setenv loaduimage
+setenv nandboot
+setenv bootkernel
+setenv bootkernel_1
+setenv machid c10
+echo Saving Normal Configuration
+saveenv
+echo ============================================================
+echo Running initial setup
+echo ============================================================
+#echo running mmcinit
+#mmc init
+#setenv machid c10
+setenv bootargs 'console=ttyS2,115200n8 ramdisk_size=10240 root=/dev/ram0 rw rootwait rootdelay=1 kgdboc=ttyS2,115200n8 usbcore.autosuspend=-1 8250.nr_uarts=6 printk.time=1'
+fatload mmc 0:1 0x80000000 uImage
+fatload mmc 0:1 0x81600000 ramdisk.ui
+
+bootm 0x80000000 0x81600000

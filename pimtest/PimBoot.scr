@@ -1,0 +1,11 @@
+echo ============================================================
+echo Running initial setup
+echo ============================================================
+echo running mmcinit
+mmc init
+setenv machid c10
+setenv bootargs 'console=ttyS2,115200n8 ramdisk_size=10240 root=/dev/ram0 rw rootwait rootdelay=1 kgdboc=ttyS2,115200n8 usbcore.autosuspend=-1 8250.nr_uarts=6 printk.time=1'
+fatload mmc 0:1 0x80000000 uImage
+fatload mmc 0:1 0x81600000 ramdisk.ui
+
+bootm 0x80000000 0x81600000

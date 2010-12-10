@@ -30,10 +30,18 @@ x-loader () {
 }
 
 mtest-build () {
-	cp ./u-boot/u-boot.gold-bin	$1/u-boot.bin
-	cp ./uImage/uImage		$1
-	cp ./memtest/ramdisk.gz		$1
-	cp ./memtest/__setenv.img	$1
+	cp ./u-boot/u-boot-force-env	$1/u-boot.bin
+	cp ./memtest/uImage		$1
+	cp ./memtest/ramdisk.ui		$1
+	cp ./memtest/config.img		$1
+	cp ./u-boot/pu-boot.bin		$1
+}
+
+ptest-build () {
+	cp ./u-boot/u-boot-force-env	$1/u-boot.bin
+	cp ./pimtest/uImage		$1
+	cp ./pimtest/ramdisk.ui		$1
+	cp ./pimtest/config.img		$1
 }
 
 fcc-build () {
@@ -184,6 +192,9 @@ while [ $# -gt 0 ]; do
 	# -v Create verification test
 	elif [ "$1" == "-v" ]; then
 		buildtype=vtest
+	# -v Create verification test
+	elif [ "$1" == "-p" ]; then
+		buildtype=ptest
 	# Create a better informed user
 	elif [ "$1" == "--help" ]; then
 		help
@@ -221,6 +232,8 @@ if [ "$buildtype" == "vtest" ]; then
 		exit
 	fi
 	volid=TESTRIG${fixid}
+elif [ "$buildtype" == "ptest" ]; then
+	volid=PIMTEST
 elif [ "$buildtype" == "mtest" ]; then
 	volid=MEMTEST
 elif [ "$buildtype" == "flash" ]; then
