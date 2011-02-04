@@ -43,6 +43,12 @@ ptest-build () {
 	cp ./pimtest/ramdisk.ui		$1
 	cp ./pimtest/config.img		$1
 }
+pprog-build () {
+	cp ./u-boot/u-boot-force-env	$1/u-boot.bin
+	cp ./pimprog/uImage		$1
+	cp ./pimprog/ramdisk.ui		$1
+	cp ./pimtest/config.img		$1
+}
 
 fcc-build () {
 	cp ./u-boot/u-boot.gold-bin	$1/u-boot.bin
@@ -66,6 +72,18 @@ vtest-build() {
 	cp ./vtest/ramdisk.gz		$1
 }
 
+lcd-build() {
+	cp ./u-boot/u-boot-force-env	$1/u-boot.bin
+	cp ./lcdtest/uImage		$1
+	cp ./lcdtest/ramdisk.ui	$1
+	cp ./pimtest/config.img		$1
+}
+video-build() {
+	cp ./u-boot/u-boot-force-env	$1/u-boot.bin
+	cp ./videotest/uImage		$1
+	cp ./videotest/ramdisk.ui	$1
+	cp ./pimtest/config.img		$1
+}
 vtest-vars () {
 	echo wlan_ip=192.168.1.10$1	> $2/testvars
 	echo test_ip=192.168.1.1	>>$2/testvars
@@ -150,11 +168,16 @@ help () {
 	echo sdbuild - Designed to keep Rao and the fine folks at CircuitCo happy
 	echo "	 -d Device name of the sd card you are building"
 	echo "	 -e Override any existing u-boot environment (factory only)"
-	echo -e "      This will erase the mac address, hence factory only"
+	echo -e "  	    This will erase the mac address (hence factory only)"
 	echo "	 -f Create bootloader flash card"
 	echo "	 -m Create memory test / burn-in card"
+	#echo "	 -p Create module test card"
 	echo "	 -n Test Fixture ID (only used with -v)"
 	echo "	 -v Create verification test card"
+	echo "	 --pprog Create module eeprom programming card"
+	#echo "	 --fcc create FCC test card"
+	echo "	 --vid Create Video module test card"
+	echo "	 --lcd Create LCD module test card"
 }
 
 if [ $# -eq 0 ]; then
@@ -179,9 +202,15 @@ while [ $# -gt 0 ]; do
 	# -f Create bootloader flash disk
 	elif [ "$1" == "-f" ]; then
 		buildtype=flash
-	# -f Create FCC certification disk
+	# --fcc Create FCC certification disk
 	elif [ "$1" == "--fcc" ]; then
 		buildtype=fcc
+	# --pprog Create pim test
+	elif [ "$1" == "--pprog" ]; then
+		buildtype=pprog
+	# --lcd Create lcd pim test
+	elif [ "$1" == "--lcd" ]; then
+		buildtype=lcd
 	# -m Create memory test
 	elif [ "$1" == "-m" ]; then
 		buildtype=mtest
@@ -192,9 +221,12 @@ while [ $# -gt 0 ]; do
 	# -v Create verification test
 	elif [ "$1" == "-v" ]; then
 		buildtype=vtest
-	# -v Create verification test
+	# -v Create pim test
 	elif [ "$1" == "-p" ]; then
 		buildtype=ptest
+	# --vid Create video pim test
+	elif [ "$1" == "--vid" ]; then
+		buildtype=video
 	# Create a better informed user
 	elif [ "$1" == "--help" ]; then
 		help
@@ -234,12 +266,18 @@ if [ "$buildtype" == "vtest" ]; then
 	volid=TESTRIG${fixid}
 elif [ "$buildtype" == "ptest" ]; then
 	volid=PIMTEST
+elif [ "$buildtype" == "pprog" ]; then
+	volid=PIMPROG
 elif [ "$buildtype" == "mtest" ]; then
 	volid=MEMTEST
 elif [ "$buildtype" == "flash" ]; then
 	volid=FLASH
 elif [ "$buildtype" == "fcc" ]; then
 	volid=FCCTEST
+elif [ "$buildtype" == "lcd" ]; then
+	volid=LCDTEST
+elif [ "$buildtype" == "video" ]; then
+	volid=VIDEOTEST
 else
 	echo Internal Error, sorry
 	exit
