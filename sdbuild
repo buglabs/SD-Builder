@@ -72,6 +72,12 @@ vtest-build() {
 	cp ./vtest/ramdisk.gz		$1
 }
 
+camera-build() {
+	cp ./u-boot/u-boot-force-env	$1/u-boot.bin
+	cp ./camtest/uImage		$1
+	cp ./camtest/ramdisk.ui	$1
+	cp ./pimtest/config.img		$1
+}
 lcd-build() {
 	cp ./u-boot/u-boot-force-env	$1/u-boot.bin
 	cp ./lcdtest/uImage		$1
@@ -178,6 +184,7 @@ help () {
 	#echo "	 --fcc create FCC test card"
 	echo "	 --vid Create Video module test card"
 	echo "	 --lcd Create LCD module test card"
+	echo "	 --cam Create Camera module test card"
 }
 
 if [ $# -eq 0 ]; then
@@ -196,6 +203,9 @@ while [ $# -gt 0 ]; do
 			echo $1 is not a valid block device
 			exit -1
 		fi
+	# --cam Create camera pim test
+	elif [ "$1" == "--cam" ]; then
+		buildtype=camera
 	# -e Elpida memory (micron is the default)
 	elif [ "$1" == "-e" ]; then
 		uboot=force
@@ -274,6 +284,8 @@ elif [ "$buildtype" == "flash" ]; then
 	volid=FLASH
 elif [ "$buildtype" == "fcc" ]; then
 	volid=FCCTEST
+elif [ "$buildtype" == "camera" ]; then
+	volid=CAMERATEST
 elif [ "$buildtype" == "lcd" ]; then
 	volid=LCDTEST
 elif [ "$buildtype" == "video" ]; then
